@@ -1,0 +1,66 @@
+/* Login Page.css */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 89vh;
+    background: linear-gradient(to right, #D32F2F, #f2b5b3); /* Gradient Blue Background */
+  }
+  
+  .auth-box {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 300px;
+  }
+  
+  h2 {
+    color: #D32F2F; /* Dark blue heading */
+  }
+  
+  .auth-input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #D32F2F;
+    border-radius: 5px;
+    outline: none;
+  }
+  
+  .auth-input:focus {
+    border-color: #D32F2F;
+  }
+  
+  .auth-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #D32F2F;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 16px;
+  }
+  
+  .auth-button:hover {
+    transform: scale(1.05);
+  }
+
+  .toggle-button {
+    background: none;
+    border: none;
+    color: #D32F2F;
+    cursor: pointer;
+  }
+  
+  
+  .auth-message {
+    color: #D32F2F;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+
+  
