@@ -1,53 +1,70 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, Typography, Grid } from "@mui/material";
+
+const streamUrls = [
+  { id: 1, title: "Camera 1", url: "http://localhost:8000/stream1" },
+  { id: 2, title: "Camera 2", url: "http://localhost:8000/stream2" },
+  { id: 3, title: "Camera 3", url: "http://localhost:8000/stream3" },
+  { id: 4, title: "Camera 4", url: "http://localhost:8000/stream4" },
+];
 
 const Dashboard = () => {
-  const [camera1, setCamera1] = useState("http://localhost:5000/stream1");
-  const [camera2, setCamera2] = useState("http://localhost:5000/stream2");
-  const [alertMessage, setAlertMessage] = useState(null);
-
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/alerts");
-        const data = await response.json();
-        setAlertMessage(data.alert || null);
-      } catch (error) {
-        console.error("Error fetching alerts", error);
-      }
-    };
-    
-    const alertInterval = setInterval(fetchAlerts, 5000);
-    return () => clearInterval(alertInterval);
-  }, []);
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     window.location.href = "/";
   };
 
+  const [evacuationImgUrl, setEvacuationImgUrl] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEvacuationImgUrl(`http://localhost:8001/evacuation-image?t=${Date.now()}`);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Zindagi.ai Dashboard</h1>
-        <button className="logout-button" onClick={handleLogout}>Logout</button>
+        <button className="logout-button" onClick={handleLogout}>
+          Logout
+        </button>
       </header>
 
-      <div className="camera-section">
-        <div className="camera-box">
-          <h3>Camera 1</h3>
-          <img src={camera1} alt="Live Camera 1" />
-        </div>
-        <div className="camera-box">
-          <h3>Camera 2</h3>
-          <img src={camera2} alt="Live Camera 2" />
-        </div>
+      <Grid container spacing={2} style={{ padding: "20px" }}>
+        {streamUrls.map((stream) => (
+          <Grid item xs={12} sm={6} key={stream.id}>
+            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  🔥 {stream.title}
+                </Typography>
+                <img
+                  src={stream.url}
+                  alt={stream.title}
+                  style={{ width: "100%", borderRadius: 8 }}
+                />
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      <div style={{ maxWidth: 1000, margin: "30px auto" }}>
+        <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              🛑 Evacuation Route (Dynamic)
+            </Typography>
+            <img
+              src={evacuationImgUrl}
+              alt="Evacuation Graph"
+              style={{ width: "100%", borderRadius: 8 }}
+            />
+          </CardContent>
+        </Card>
       </div>
-      
-      {alertMessage && (
-        <div className="alert-box">
-          <p>{alertMessage}</p>
-        </div>
-      )}
     </div>
   );
 };
