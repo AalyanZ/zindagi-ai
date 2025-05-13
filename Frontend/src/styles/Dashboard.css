@@ -93,3 +93,24 @@
   border-radius: 10px;
   border: 2px solid #1976d2;
 }
+/* Fire Event Log Section */
+.event-log-card {
+  margin-top: 20px;
+  padding: 20px;
+  width: 100%;
+  max-width: 1000px;
+  background-color: #fefefe;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.event-log-card h6 {
+  font-weight: bold;
+  color: #c62828;
+}
+
+.event-log-card p {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333;
+}
