@@ -4,8 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 import cv2
 import os
-import requests  # for sending POST to evacuation
-import threading  # for managing state safely
+import requests
 
 app = FastAPI()
 
@@ -37,11 +36,11 @@ CAM_TO_NODE = {
     "4": "Room4"
 }
 
-# Keep track of already blocked nodes (to avoid repeat blocking)
+# Track already blocked nodes to prevent duplicates
 already_blocked = set()
 
-# Evacuation API URL (Ensure your evacuation service is running at the correct address)
-EVACUATION_API_URL = "http://localhost:8001/block_node"
+# Evacuation API endpoint
+EVACUATION_API_URL = "http://localhost:8001/block-node"  # ✅ note: matches GET endpoint
 
 def generate_stream(video_path, cam_id):
     cap = cv2.VideoCapture(video_path)
@@ -54,7 +53,6 @@ def generate_stream(video_path, cam_id):
         results = model.predict(source=frame, conf=0.15, verbose=False)
         fire_detected = False
 
-        # Detect fire in the frame
         for result in results:
             for cls in result.boxes.cls:
                 class_name = model.names[int(cls)]
@@ -62,12 +60,11 @@ def generate_stream(video_path, cam_id):
                     fire_detected = True
                     break
 
-        # If fire detected and node is not yet blocked, send signal to evacuation system
         node = CAM_TO_NODE.get(cam_id)
         if fire_detected and node and node not in already_blocked:
             try:
-                # Notify evacuation system to block this node
-                response = requests.post(EVACUATION_API_URL, json={"node": node})
+                # ✅ Send node as query param, not JSON
+                response = requests.post(f"{EVACUATION_API_URL}?node={node}")
                 if response.status_code == 200:
                     already_blocked.add(node)
                     print(f"🔥 Fire detected in {node}. Blocking node.")
@@ -76,12 +73,10 @@ def generate_stream(video_path, cam_id):
             except Exception as e:
                 print(f"Failed to notify evacuation system: {e}")
 
-        # Annotate the frame with fire detection (if any)
+        # Annotate frame and yield
         annotated = results[0].plot()
         _, jpeg = cv2.imencode('.jpg', annotated)
         frame_bytes = jpeg.tobytes()
-
-        # Yield the frame to the client
         yield (
             b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n'
@@ -91,7 +86,6 @@ def generate_stream(video_path, cam_id):
 
 @app.get("/stream{cam_id}")
 def video_stream(cam_id: str):
-    """Serve the video stream for the given camera id."""
     path = VIDEO_PATHS.get(cam_id)
     if not path or not os.path.exists(path):
         return {"error": "Invalid or missing video file"}
