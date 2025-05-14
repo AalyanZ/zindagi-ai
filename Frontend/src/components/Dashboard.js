@@ -18,6 +18,7 @@ const Dashboard = () => {
 
   const [evacuationImgUrl, setEvacuationImgUrl] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [shownAlerts, setShownAlerts] = useState([]);
 
   const [userName, setUserName] = useState("");
   const navigate = useNavigate();
@@ -34,14 +35,16 @@ const Dashboard = () => {
     }
   }, [navigate])
 
-  useEffect(() => {
-    const fetchUpdates = () => {
-      // 🔄 Reload evacuation image
-      setEvacuationImgUrl(`http://localhost:8001/evacuation-image?t=${Date.now()}`);
-      setCurrentTime(new Date());
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [shownAlerts]);
+useEffect(() => {
+  const interval = setInterval(() => {
+    // 🔄 Reload evacuation image
+    setEvacuationImgUrl(`http://localhost:8001/evacuation-image?t=${Date.now()}`);
+    setCurrentTime(new Date());
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [shownAlerts]);
+
 
   return (
     <div className="dashboard-container">
