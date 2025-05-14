@@ -1,15 +1,19 @@
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 import cv2
 import os
-import requests  # for sending POST to evacuation
-import threading  # for managing state safely
+import requests
+
+# 🆕 Added imports for email functionality
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = FastAPI()
 
-# Enable CORS
+# ✅ Enable CORS for frontend access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,7 +25,7 @@ app.add_middleware(
 # Load YOLO model
 model = YOLO(r"D:\proj-fyp\zindagi-ai\zindagi-ai\Backend\best.pt")
 
-# Video path mapping
+# ✅ Video feed mapping
 VIDEO_PATHS = {
     "1": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video1.mp4",
     "2": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video2.mp4",
@@ -29,7 +33,7 @@ VIDEO_PATHS = {
     "4": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video4.mp4"
 }
 
-# Mapping from cam_id to evacuation node (room)
+# ✅ Map cam to evacuation node
 CAM_TO_NODE = {
     "1": "Room1",
     "2": "Room2",
@@ -37,11 +41,40 @@ CAM_TO_NODE = {
     "4": "Room4"
 }
 
-# Keep track of already blocked nodes (to avoid repeat blocking)
+# ✅ Prevent re-blocking same node
 already_blocked = set()
 
-# Evacuation API URL (Ensure your evacuation service is running at the correct address)
-EVACUATION_API_URL = "http://localhost:8001/block_node"
+# ✅ Evacuation endpoint
+EVACUATION_API_URL = "http://localhost:8001/block-node"
+
+# ✅ Shared list to keep frontend-visible messages
+event_log = []
+
+# 🆕 Email configuration - replace with your actual credentials
+EMAIL_SENDER = "k213432@nu.edu.pk"
+EMAIL_PASSWORD = "wslu xoti zobf vzue"
+EMAIL_RECIPIENT = "aalyancool8@gmail.com"
+
+# 🆕 Function to send email notifications
+def send_email(subject, body, to_email):
+    from_email = EMAIL_SENDER
+    password = EMAIL_PASSWORD
+
+    message = MIMEMultipart()
+    message["From"] = from_email
+    message["To"] = to_email
+    message["Subject"] = subject
+
+    message.attach(MIMEText(body, "plain"))
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(from_email, password)
+            server.send_message(message)
+        print(f"✅ Email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
 
 def generate_stream(video_path, cam_id):
     cap = cv2.VideoCapture(video_path)
@@ -52,36 +85,43 @@ def generate_stream(video_path, cam_id):
             break
 
         results = model.predict(source=frame, conf=0.15, verbose=False)
-        fire_detected = False
+        fire_detected = any(model.names[int(cls)].lower() == "fire" for r in results for cls in r.boxes.cls)
 
-        # Detect fire in the frame
-        for result in results:
-            for cls in result.boxes.cls:
-                class_name = model.names[int(cls)]
-                if class_name.lower() == "fire":
-                    fire_detected = True
-                    break
-
-        # If fire detected and node is not yet blocked, send signal to evacuation system
         node = CAM_TO_NODE.get(cam_id)
         if fire_detected and node and node not in already_blocked:
             try:
-                # Notify evacuation system to block this node
-                response = requests.post(EVACUATION_API_URL, json={"node": node})
+                response = requests.post(f"{EVACUATION_API_URL}?node={node}")
                 if response.status_code == 200:
                     already_blocked.add(node)
-                    print(f"🔥 Fire detected in {node}. Blocking node.")
-                else:
-                    print(f"Failed to block node {node}: {response.text}")
-            except Exception as e:
-                print(f"Failed to notify evacuation system: {e}")
+                    data = response.json()
 
-        # Annotate the frame with fire detection (if any)
+                    fire_msg = f"🔥 Fire detected in {node}. Blocking node."
+                    event_log.append(fire_msg)
+                    print(fire_msg)
+
+                    # 🆕 Send email notification
+                    email_subject = f"🔥 Fire Alert: {node}"
+                    email_body = f"Fire has been detected in {node}. The node has been blocked, and evacuation procedures have been initiated."
+                    send_email(email_subject, email_body, EMAIL_RECIPIENT)
+
+                    path = data.get("evacuation_path_from_blocked_node")
+                    if path:
+                        path_msg = f"🟢 Suggested evacuation path from blocked node: {path}"
+                        event_log.append(path_msg)
+                        print(path_msg)
+                    else:
+                        warn_msg = f"⚠️ No valid evacuation path from blocked node {node}."
+                        event_log.append(warn_msg)
+                        print(warn_msg)
+                else:
+                    print(f"❌ Failed to block node {node}: {response.text}")
+            except Exception as e:
+                print(f"❌ Error notifying evacuation system: {e}")
+
         annotated = results[0].plot()
         _, jpeg = cv2.imencode('.jpg', annotated)
         frame_bytes = jpeg.tobytes()
 
-        # Yield the frame to the client
         yield (
             b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n'
@@ -91,8 +131,12 @@ def generate_stream(video_path, cam_id):
 
 @app.get("/stream{cam_id}")
 def video_stream(cam_id: str):
-    """Serve the video stream for the given camera id."""
     path = VIDEO_PATHS.get(cam_id)
     if not path or not os.path.exists(path):
         return {"error": "Invalid or missing video file"}
     return StreamingResponse(generate_stream(path, cam_id), media_type='multipart/x-mixed-replace; boundary=frame')
+
+# ✅ New endpoint to fetch live messages for frontend
+@app.get("/events")
+def get_fire_event_log():
+    return JSONResponse(content={"events": event_log})

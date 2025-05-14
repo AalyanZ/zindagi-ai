@@ -35,12 +35,13 @@ const Dashboard = () => {
   }, [navigate])
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const fetchUpdates = () => {
+      // 🔄 Reload evacuation image
       setEvacuationImgUrl(`http://localhost:8001/evacuation-image?t=${Date.now()}`);
       setCurrentTime(new Date());
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [shownAlerts]);
 
   return (
     <div className="dashboard-container">
