@@ -6,6 +6,11 @@ import cv2
 import os
 import requests
 
+# 🆕 Added imports for email functionality
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 app = FastAPI()
 
 # ✅ Enable CORS for frontend access
@@ -45,6 +50,32 @@ EVACUATION_API_URL = "http://localhost:8001/block-node"
 # ✅ Shared list to keep frontend-visible messages
 event_log = []
 
+# 🆕 Email configuration - replace with your actual credentials
+EMAIL_SENDER = "k213432@nu.edu.pk"
+EMAIL_PASSWORD = "wslu xoti zobf vzue"
+EMAIL_RECIPIENT = "aalyancool8@gmail.com"
+
+# 🆕 Function to send email notifications
+def send_email(subject, body, to_email):
+    from_email = EMAIL_SENDER
+    password = EMAIL_PASSWORD
+
+    message = MIMEMultipart()
+    message["From"] = from_email
+    message["To"] = to_email
+    message["Subject"] = subject
+
+    message.attach(MIMEText(body, "plain"))
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(from_email, password)
+            server.send_message(message)
+        print(f"✅ Email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
+
 def generate_stream(video_path, cam_id):
     cap = cv2.VideoCapture(video_path)
 
@@ -67,6 +98,11 @@ def generate_stream(video_path, cam_id):
                     fire_msg = f"🔥 Fire detected in {node}. Blocking node."
                     event_log.append(fire_msg)
                     print(fire_msg)
+
+                    # 🆕 Send email notification
+                    email_subject = f"🔥 Fire Alert: {node}"
+                    email_body = f"Fire has been detected in {node}. The node has been blocked, and evacuation procedures have been initiated."
+                    send_email(email_subject, email_body, EMAIL_RECIPIENT)
 
                     path = data.get("evacuation_path_from_blocked_node")
                     if path:
