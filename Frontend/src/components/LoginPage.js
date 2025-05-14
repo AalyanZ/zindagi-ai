@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/LoginPage.css"
 
@@ -8,23 +8,36 @@ const LoginPage = () => {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
+  // Check if user is already logged in when component mounts
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
   const handleAuth = async () => {
     const endpoint = "http://localhost:5000/login";
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await response.json();
-    if (response.ok) {
-      localStorage.setItem("token", data.token);
-      setMessage("Authentication successful!");
-      navigate("/dashboard");
-    } else {
-      setMessage(data.message || "Authentication failed");
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        setMessage("Authentication successful!");
+        navigate("/dashboard");
+      } else {
+        setMessage(data.message || "Authentication failed");
+      }
+    } catch (error) {
+      setMessage("Error connecting to server");
+      console.error("Login error:", error);
     }
   };
 

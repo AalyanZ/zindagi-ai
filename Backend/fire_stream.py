@@ -19,14 +19,14 @@ app.add_middleware(
 )
 
 # Load YOLO model
-model = YOLO(r"D:\proj\zindagi-ai\Backend\best.pt")
+model = YOLO(r"D:\proj-fyp\zindagi-ai\zindagi-ai\Backend\best.pt")
 
 # Video path mapping
 VIDEO_PATHS = {
-    "1": r"D:\proj\zindagi-ai\Frontend\public\videos\video1.mp4",
-    "2": r"D:\proj\zindagi-ai\Frontend\public\videos\video2.mp4",
-    "3": r"D:\proj\zindagi-ai\Frontend\public\videos\video3.mp4",
-    "4": r"D:\proj\zindagi-ai\Frontend\public\videos\video4.mp4",
+    "1": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video1.mp4",
+    "2": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video2.mp4",
+    "3": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video3.mp4",
+    "4": r"D:\proj-fyp\zindagi-ai\zindagi-ai\Frontend\public\videos\video4.mp4"
 }
 
 # Mapping from cam_id to evacuation node (room)
